@@ -31,6 +31,10 @@ inputs:
     required: true
     description: GitHub username where the fork of winget-pkgs is present.
     default: ${{ github.repository_owner }}
+  dry-run:
+    required: false
+    description: Enable "dry-run" mode for Komac and skip submitting pull request.
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -74,7 +78,16 @@ runs:
         GITHUB_TOKEN: ${{ github.token }}
       id: version-and-urls
       shell: pwsh
-    - run: komac update '${{ inputs.identifier }}' --version '${{ steps.version-and-urls.outputs.version }}' --submit --urls ${{ steps.version-and-urls.outputs.urls }}
+    - if: inputs.dry-run == 'true'
+      run: komac update '${{ inputs.identifier }}' --version '${{ steps.version-and-urls.outputs.version }}' --dry-run --urls ${{ steps.version-and-urls.outputs.urls }}
+      env:
+        KOMAC_FORK_OWNER: ${{ inputs.fork-user }}
+        KOMAC_CREATED_WITH: WinGet Releaser
+        KOMAC_CREATED_WITH_URL: ${{ github.server_url }}/${{ github.action_repository }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      shell: pwsh
+    - if: inputs.dry-run == 'false'
+      run: komac update '${{ inputs.identifier }}' --version '${{ steps.version-and-urls.outputs.version }}' --submit --urls ${{ steps.version-and-urls.outputs.urls }}
       env:
         KOMAC_FORK_OWNER: ${{ inputs.fork-user }}
         KOMAC_CREATED_WITH: WinGet Releaser
